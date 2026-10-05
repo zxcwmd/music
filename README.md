@@ -77,6 +77,25 @@ python3 -m http.server 8000 --bind 0.0.0.0     # или npm start
   анимации появления — и закрывает `AudioContext`.
 - `prefers-reduced-motion` уважается.
 
+## Десктоп: установщик Windows (.exe)
+
+Плеер упакован в Electron (`desktop/main.js`) и собирается в настоящий
+NSIS-установщик на GitHub Actions, потому что в песочнице GitHub-ассеты
+(для скачивания Electron) заблокированы.
+
+- **Готовый установщик:** релиз `v1.0.0`, файл `Aurora-Player-Setup-1.0.0.exe`
+  (~112 МБ — Electron везёт с собой Chromium; *в работе* приложение остаётся
+  тем же лёгким рендерером, что и веб-версия).
+  `https://github.com/zxcwmd/music/releases/download/v1.0.0/Aurora-Player-Setup-1.0.0.exe`
+- Собрать заново: `npm run dist:win` (нужна открытая сеть до GitHub).
+- CI-воркфлоу: `.github/workflows/windows.yml` — ставит зависимости, гоняет
+  тесты и пакует NSIS на `windows-latest`; по тегу `v*` прикладывает .exe к релизу.
+
+Особенности десктоп-версии: страница отдаётся по схеме `app://` (нормальный
+origin для CORS к Audius / archive.org), один экземпляр приложения, внешние
+ссылки открываются в системном браузере, меню и мультимедиа-клавиши пробрасываются
+в плеер (`aurora:media`).
+
 ## Проверка
 
 ```bash
