@@ -1,0 +1,61 @@
+# Собирает настоящий установщик Windows (NSIS .exe) для Aurora Player.
+#
+# ВАЖНО: внутри песочницы GitHub-ассеты недоступны (заблокирован
+# release-assets.githubusercontent.com), поэтому Electron/NSIS собираются здесь,
+# на раннере GitHub Actions, где сеть открыта полностью.
+#
+# Запуск:
+#   - автоматически при push в ветку (для проверки),
+#   - вручную: вкладка Actions → «Windows installer» → Run workflow,
+#   - релиз с .exe: push тега v*
+name: Windows installer
+
+on:
+  push:
+    branches: ['arena/**', main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit + UI tests
+        run: npm test
+
+      - name: Build Windows installer (NSIS)
+        run: npx electron-builder --win --x64 --publish never
+
+      - name: List artifacts
+        shell: bash
+        run: ls -la dist/
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aurora-Player-Windows-x64
+          path: |
+            dist/*.exe
+          if-no-files-found: error
+
+      - name: Attach to GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe
+          generate_release_notes: true

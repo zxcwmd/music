@@ -1,0 +1,55 @@
+{
+  "name": "aurora-player",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Aurora — лёгкий веб-плеер: музыка из интернета, без рекламы, без тяжёлых зависимостей",
+  "main": "desktop/main.js",
+  "author": "Aurora",
+  "homepage": "https://zxcwmd.github.io/music/",
+  "scripts": {
+    "start": "python3 -m http.server 8000 --bind 0.0.0.0",
+    "desktop": "electron .",
+    "dist:win": "electron-builder --win --x64",
+    "test": "node tests/sources.test.js && node tests/player.test.js && node tests/ui.test.js"
+  },
+  "build": {
+    "appId": "ai.arena.aurora",
+    "productName": "Aurora Player",
+    "artifactName": "Aurora-Player-Setup-${version}.${ext}",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "index.html",
+      "assets/**/*",
+      "desktop/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Aurora Player",
+      "deleteAppDataOnUninstall": false,
+      "uninstallDisplayName": "Aurora Player",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "jsdom": "^25.0.0"
+  }
+}
