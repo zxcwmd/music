@@ -153,9 +153,61 @@
       case 'search': return renderSearch(v);
       case 'archive': return renderArchive(v);
       case 'album': return renderAlbum(v, opts.identifier);
+      case 'soundcloud': return renderSoundcloud(v);
       case 'favorites': return renderFavorites(v);
       case 'history': return renderHistory(v);
     }
+  }
+
+  /* ---------------- SoundCloud (официальный виджет) ---------------- */
+  function scValid(url) {
+    return /^https?:\/\/(on\.|w\.|m\.)?(soundcloud\.com|sndcd\.co|sndcdn\.com)\/\S+/i.test(String(url || '').trim());
+  }
+
+  function renderSoundcloud(root) {
+    var recent = U.store.get('soundcloud', []);
+    root.innerHTML =
+      '<div class="section-head"><div><h2>SoundCloud</h2><p>Официальный embed-виджет: вставьте ссылку — трек заиграет</p></div></div>' +
+      '<div class="sc">' +
+        '<div class="sc__note"><svg><use href="#i-moon"/></svg><span>В России SoundCloud заблокирован Роскомнадзором с 02.10.2022, поэтому без VPN виджет здесь не откроется. ' +
+          'Это сетевая блокировка — приложение не может её обойти. В РФ без VPN работают «В тренде», «Поиск» (Audius) и «Internet Archive».</span></div>' +
+        '<div class="sc__form">' +
+          '<input class="sc__input" id="scInput" type="url" placeholder="https://soundcloud.com/artist/track" autocomplete="off" spellcheck="false">' +
+          '<button class="btn btn--primary" data-act="sc-play"><svg><use href="#i-play"/></svg>Играть</button>' +
+        '</div>' +
+        '<div id="scPlayer"></div>' +
+        (recent.length ? '<div><div class="section-head" style="margin:4px 0 8px"><p style="margin:0">Недавние</p></div>' +
+          '<div class="sc__recent">' + recent.map(function (r) {
+            return '<button class="chip" data-scurl="' + U.esc(r.url) + '">' + U.esc(r.title || r.url) + '</button>';
+          }).join('') + '</div></div>' : '') +
+      '</div>';
+  }
+
+  function playSoundcloud(url) {
+    url = String(url || '').trim();
+    if (!scValid(url)) { U.toast('Это не похоже на ссылку SoundCloud', { error: true }); return; }
+    var visual = /\/sets\//.test(url);   // плейлист — высокий виджет
+    var src = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(url) +
+      '&color=%237c5cff&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&visual=' + (visual ? 'true' : 'false');
+    $('#scPlayer').innerHTML =
+      '<iframe class="sc__frame' + (visual ? ' sc__frame--visual' : '') + '" id="scFrame" loading="lazy" ' +
+      'title="SoundCloud player" allow="autoplay" src="' + U.esc(src) + '"></iframe><div class="sc__meta" id="scMeta"></div>';
+
+    var rec = U.store.get('soundcloud', []).filter(function (r) { return r.url !== url; });
+    rec.unshift({ url: url, title: '' });
+    U.store.set('soundcloud', rec.slice(0, 6));
+
+    S.getJSON('https://soundcloud.com/oembed?format=json&url=' + encodeURIComponent(url), 12000)
+      .then(function (j) {
+        var meta = $('#scMeta');
+        if (!meta || !j) return;
+        rec[0].title = j.title || url;
+        U.store.set('soundcloud', rec.slice(0, 6));
+        meta.innerHTML =
+          (j.thumbnail_url ? '<img src="' + U.esc(j.thumbnail_url) + '" alt="" onerror="this.remove()">' : '') +
+          '<div><div class="t">' + U.esc(j.title || 'SoundCloud') + '</div><div class="a">' + U.esc(j.author_name || '') + '</div></div>';
+      })
+      .catch(function () { /* виджет уже играет — метаданные не критичны */ });
   }
 
   /* ---------------- В тренде ---------------- */
@@ -505,6 +557,14 @@
       var nav = e.target.closest('[data-nav]');
       if (nav) { go(nav.dataset.nav); return; }
 
+      var scr = e.target.closest('[data-scurl]');
+      if (scr) {
+        var inp = $('#scInput');
+        if (inp) inp.value = scr.dataset.scurl;
+        playSoundcloud(scr.dataset.scurl);
+        return;
+      }
+
       var chip = e.target.closest('[data-chip]');
       if (chip) {
         if (chip.dataset.chip === 'genre') {
@@ -533,6 +593,11 @@
       if (act) {
         var name = act.dataset.act;
         var listKey = act.dataset.list;
+
+        if (name === 'sc-play') {
+          playSoundcloud($('#scInput') ? $('#scInput').value : '');
+          return;
+        }
 
         if (name === 'play-all' || name === 'shuffle-all') {
           var tracks = state.cache[listKey];
@@ -579,6 +644,14 @@
 
       var trow = e.target.closest('.track');
       if (trow) playFromList(trow.dataset.list, Number(trow.dataset.i));
+    });
+
+    /* --- SoundCloud: Enter в поле ссылки --- */
+    $('#view').addEventListener('keydown', function (e) {
+      if (e.target && e.target.id === 'scInput' && e.key === 'Enter') {
+        e.preventDefault();
+        playSoundcloud(e.target.value);
+      }
     });
 
     /* --- очередь --- */

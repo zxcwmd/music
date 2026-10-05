@@ -303,6 +303,27 @@ function installShims(w) {
   ok(Array.from(lv).every(v => v >= 0 && v <= 1), 'все уровни в диапазоне 0..1');
   P.Viz.ringOpen = false;
 
+  console.log('\nSoundCloud: официальный виджет');
+  click($('[data-view="soundcloud"]')); await tick(8);
+  ok($('#scInput'), 'поле для ссылки');
+  ok($('.sc__note'), 'предупреждение о блокировке в РФ');
+  $('#scInput').value = 'https://soundcloud.com/forss/flickermood';
+  click($('#view [data-act="sc-play"]')); await tick(6);
+  const fr = $('#scFrame');
+  ok(!!fr, 'создан iframe виджета');
+  ok(fr && fr.getAttribute('src').indexOf('https://w.soundcloud.com/player/?url=') === 0, 'src — официальный виджет', fr && fr.getAttribute('src'));
+  ok(fr && fr.getAttribute('src').indexOf(encodeURIComponent('https://soundcloud.com/forss/flickermood')) !== -1, 'ссылка закодирована в url=');
+  ok(fr && fr.getAttribute('src').indexOf('auto_play=true') !== -1, 'автоплей включён');
+  // невалидная ссылка не создаёт плеер
+  $('#scInput').value = 'https://example.com/not-soundcloud';
+  const framesBefore = $$('#view iframe').length;
+  click($('#view [data-act="sc-play"]')); await tick(4);
+  eq($$('#view iframe').length, framesBefore, 'невалидная ссылка не создаёт iframe');
+  // плейлист (/sets/) → высокий виджет
+  $('#scInput').value = 'https://soundcloud.com/artist/sets/myset';
+  click($('#view [data-act="sc-play"]')); await tick(4);
+  ok($('#scFrame').classList.contains('sc__frame--visual'), 'плейлист получает высокий виджет');
+
   console.log('\nXSS: названия из API экранируются');
   w.eval(`window.Sources.Audius.trending = function(){ return Promise.resolve([{
     id:'audius:evil', source:'audius', remoteId:'evil',

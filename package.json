@@ -1,6 +1,6 @@
 {
   "name": "aurora-player",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "Aurora — лёгкий веб-плеер: музыка из интернета, без рекламы, без тяжёлых зависимостей",
   "main": "desktop/main.js",

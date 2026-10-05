@@ -389,6 +389,31 @@ svg{width:100%;height:100%;display:block}
 .empty h3{margin:0;font-size:16px;color:var(--text)}
 .empty p{margin:0;font-size:13px;color:var(--muted-2);max-width:42ch}
 
+/* ---------- SoundCloud ---------- */
+.sc{max-width:760px;display:flex;flex-direction:column;gap:14px}
+.sc__note{
+  display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:13px;font-size:12.5px;line-height:1.5;
+  color:#ffd27d;background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.28);
+}
+.sc__note svg{width:16px;height:16px;flex:none;margin-top:1px}
+.sc__form{display:flex;gap:8px}
+.sc__input{
+  flex:1;height:42px;border-radius:12px;padding:0 14px;font-size:13.5px;min-width:0;
+  background:var(--surface);border:1px solid var(--stroke);color:var(--text);outline:0;
+  transition:border-color .25s var(--ease),box-shadow .25s var(--ease);
+}
+.sc__input:focus{border-color:rgba(var(--accent-rgb),.6);box-shadow:0 0 0 4px rgba(var(--accent-rgb),.12)}
+.sc__frame{
+  width:100%;border:0;border-radius:16px;display:block;background:rgba(255,255,255,.04);
+  height:166px;animation:rise .45s var(--ease-out) both;
+}
+.sc__frame--visual{height:320px}
+.sc__meta{display:flex;align-items:center;gap:12px}
+.sc__meta img{width:56px;height:56px;border-radius:10px;object-fit:cover;flex:none}
+.sc__meta .t{font-size:14px;font-weight:600}
+.sc__meta .a{font-size:12px;color:var(--muted-2);margin-top:2px}
+.sc__recent{display:flex;flex-wrap:wrap;gap:8px}
+
 /* ==========================================================================
    4. Player bar
    ========================================================================== */

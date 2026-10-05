@@ -14,6 +14,7 @@
 |---|---|---|
 | [**Audius**](https://audius.co) | Полные треки напрямую от исполнителей: тренды по жанрам, поиск | Децентрализованная платформа, поток идёт без вставок |
 | [**Internet Archive**](https://archive.org) | Нетлейблы, живые концерты, CC-альбомы целиком | Общественный архив, свободные лицензии |
+| [**SoundCloud**](https://soundcloud.com) | Вкладка «SoundCloud»: вставьте ссылку — играет официальный embed-виджет | Работает **только где SoundCloud доступен**; в РФ заблокирован с 02.10.2022, без VPN не откроется |
 
 Ключи API не нужны ни там, ни там. Audius отдаёт прямую ссылку на поток прямо
 в карточке трека, archive.org — стабильный адрес `archive.org/download/{id}/{file}`.
@@ -83,10 +84,10 @@ python3 -m http.server 8000 --bind 0.0.0.0     # или npm start
 NSIS-установщик на GitHub Actions, потому что в песочнице GitHub-ассеты
 (для скачивания Electron) заблокированы.
 
-- **Готовый установщик:** релиз `v1.0.1`, файл `Aurora-Player-Setup-1.0.1.exe`
+- **Готовый установщик:** релиз `v1.0.2`, файл `Aurora-Player-Setup-1.0.2.exe`
   (~112 МБ — Electron везёт с собой Chromium; *в работе* приложение остаётся
   тем же лёгким рендерером, что и веб-версия).
-  `https://github.com/zxcwmd/music/releases/download/v1.0.1/Aurora-Player-Setup-1.0.1.exe`
+  `https://github.com/zxcwmd/music/releases/download/v1.0.2/Aurora-Player-Setup-1.0.2.exe`
 - Собрать заново: `npm run dist:win` (нужна открытая сеть до GitHub).
 - CI-воркфлоу: `.github/workflows/windows.yml` — ставит зависимости, гоняет
   тесты и пакует NSIS на `windows-latest`; по тегу `v*` прикладывает .exe к релизу.
