@@ -87,7 +87,8 @@
           '<span class="go" data-act="play"><svg><use href="#i-play"/></svg></span></div>' +
         coverHTML(t, 'cover--md') +
         '<div class="track__main">' +
-          '<div class="track__title">' + (t.source === 'archive' ? '<span class="track__badge">IA</span>' : '') + U.esc(t.title) + '</div>' +
+          '<div class="track__title">' + (t.source === 'archive' ? '<span class="track__badge">IA</span>' : '') +
+            (t.isPreview ? '<span class="track__badge track__badge--prev" title="Платный трек — играет бесплатный превью-фрагмент">превью</span>' : '') + U.esc(t.title) + '</div>' +
           '<div class="track__sub">' + U.esc(t.artist) + (t.album && t.album !== t.artist ? ' · ' + U.esc(t.album) : '') + '</div>' +
         '</div>' +
         '<div class="track__dur">' + (t.duration ? U.fmt(t.duration) : '—') + '</div>' +

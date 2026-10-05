@@ -268,6 +268,47 @@ Archive.item('badpanda018').then(album => {
       eq(su.searchParams.get('limit'), '60', 'limit=60');
     });
   }).then(() => {
+    /* ---------------------------------------------------------------- *
+     * 5b. Audius — обход узлов, отдающих 403
+     * ---------------------------------------------------------------- */
+    console.log('\naudius — обход узлов с 403');
+    Audius._hostPromise = null; Audius.hosts = []; Audius._cursor = 0; Audius.host = null;
+    const seenH = [];
+    sandbox.fetch = (url) => {
+      seenH.push(url);
+      if (url === 'https://api.audius.co') return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ data: ['https://bad-node.example', 'https://good-node.example'] }) });
+      if (url.indexOf('https://bad-node.example') === 0) return Promise.resolve({ ok: false, status: 403, json: () => Promise.resolve({}) });
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ data: [{ id: 'g1', title: 'G', user: { name: 'A' }, stream: { url: 'http://x/g.mp3' } }] }) });
+    };
+    return Audius.search('q').then(list => {
+      eq(list.length, 1, 'результат получен со второго узла');
+      eq(Audius.host, 'https://good-node.example', 'рабочий узел запомнен');
+      ok(seenH.some(u => u.indexOf('https://bad-node.example/v1/tracks/search') === 0), 'сначала опрошен плохой узел', seenH.join('\n'));
+      ok(seenH.some(u => u.indexOf('https://good-node.example/v1/tracks/search') === 0), 'затем хороший');
+      ok(Audius.hosts.indexOf('https://api.audius.co') !== -1, 'запасной узел всегда в списке');
+    });
+  }).then(() => {
+    /* все узлы мертвы — понятная ошибка, а не тихий undefined */
+    Audius._hostPromise = null; Audius.hosts = ['https://a.example', 'https://b.example']; Audius._cursor = 0;
+    sandbox.fetch = () => Promise.resolve({ ok: false, status: 503, json: () => Promise.resolve({}) });
+    return Audius.trending('').then(
+      () => { ok(false, 'должен отклониться'); },
+      e => ok(/503/.test(e.message), 'ошибка несёт последний статус', e.message)
+    );
+  }).then(() => {
+    /* ---------------------------------------------------------------- *
+     * 5c. Превью для платных (gated) треков
+     * ---------------------------------------------------------------- */
+    console.log('\naudius — превью для платных треков');
+    const gated = Audius.normalize({ id: 'g', title: 'T', user: { name: 'A' }, stream: null, preview: { url: 'http://x/prev.mp3' }, duration: 30 });
+    eq(gated.streamUrl, 'http://x/prev.mp3', 'берётся превью-ссылка');
+    eq(gated.isPreview, true, 'флаг превью');
+    const free = Audius.normalize({ id: 'f', title: 'T', user: { name: 'A' }, stream: { url: 'http://x/full.mp3' }, preview: { url: 'http://x/prev.mp3' } });
+    eq(free.streamUrl, 'http://x/full.mp3', 'полный поток предпочитается превью');
+    eq(free.isPreview, false, 'без флага превью');
+    const dead = Audius.normalize({ id: 'd', title: 'T', user: { name: 'A' } });
+    eq(dead.streamUrl, null, 'нет ни потока ни превью — null');
+  }).then(() => {
     /* refresh: stream уже есть в /v1/tracks/{id} */
     const seen3 = [];
     sandbox.fetch = (url) => {

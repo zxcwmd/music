@@ -83,10 +83,10 @@ python3 -m http.server 8000 --bind 0.0.0.0     # или npm start
 NSIS-установщик на GitHub Actions, потому что в песочнице GitHub-ассеты
 (для скачивания Electron) заблокированы.
 
-- **Готовый установщик:** релиз `v1.0.0`, файл `Aurora-Player-Setup-1.0.0.exe`
+- **Готовый установщик:** релиз `v1.0.1`, файл `Aurora-Player-Setup-1.0.1.exe`
   (~112 МБ — Electron везёт с собой Chromium; *в работе* приложение остаётся
   тем же лёгким рендерером, что и веб-версия).
-  `https://github.com/zxcwmd/music/releases/download/v1.0.0/Aurora-Player-Setup-1.0.0.exe`
+  `https://github.com/zxcwmd/music/releases/download/v1.0.1/Aurora-Player-Setup-1.0.1.exe`
 - Собрать заново: `npm run dist:win` (нужна открытая сеть до GitHub).
 - CI-воркфлоу: `.github/workflows/windows.yml` — ставит зависимости, гоняет
   тесты и пакует NSIS на `windows-latest`; по тегу `v*` прикладывает .exe к релизу.

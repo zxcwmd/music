@@ -227,9 +227,11 @@ P.on('error', e => emitted.push('error:' + e.message));
   await P.playAt(0);
   eq(audio.getAttribute('crossorigin'), 'anonymous', 'первая попытка с crossorigin');
   // имитируем: сервер не отдал ACAO, медиа-элемент сообщил об ошибке
-  sandbox.fetch = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({
-    data: { id: 't7', title: 'Трек 7', user: { name: 'A' }, stream: { url: 'https://cdn/7b.mp3' } }
-  }) });
+  sandbox.fetch = (url) => url === 'https://api.audius.co'
+    ? Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ data: ['https://api.audius.co'] }) })
+    : Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({
+        data: { id: 't7', title: 'Трек 7', user: { name: 'A' }, stream: { url: 'https://cdn/7b.mp3' } }
+      }) });
   audio.dispatch('error');
   await new Promise(r => setImmediate(r));
   await new Promise(r => setImmediate(r));

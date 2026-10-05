@@ -1,6 +1,6 @@
 {
   "name": "aurora-player",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Aurora — лёгкий веб-плеер: музыка из интернета, без рекламы, без тяжёлых зависимостей",
   "main": "desktop/main.js",
@@ -28,7 +28,12 @@
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "build/icon.ico",
       "requestedExecutionLevel": "asInvoker"

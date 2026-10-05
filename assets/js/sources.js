@@ -32,7 +32,10 @@
    * ================================================================== */
   var Audius = {
     host: null,
+    hosts: [],
     _hostPromise: null,
+    _cursor: 0,
+    FALLBACK_HOSTS: ['https://api.audius.co'],
 
     genres: [
       { id: '', label: 'Всё' },
@@ -51,31 +54,59 @@
       { id: 'Metal', label: 'Метал' }
     ],
 
-    /** Разово узнаём живой discovery-узел */
+    /** Узнаём список discovery-узлов; при сбое берём запасной */
     init: function () {
       if (this._hostPromise) return this._hostPromise;
+      var self = this;
       this._hostPromise = getJSON('https://api.audius.co', 12000)
-        .then(function (j) {
-          var hosts = (j && j.data) || [];
-          Audius.host = hosts[0] || 'https://api.audius.co';
-          return Audius.host;
-        })
-        .catch(function () { Audius.host = 'https://api.audius.co'; return Audius.host; });
+        .then(function (j) { return (j && j.data) || []; })
+        .catch(function () { return []; })
+        .then(function (hosts) {
+          var merged = [];
+          (hosts || []).concat(self.FALLBACK_HOSTS).forEach(function (h) {
+            if (h && merged.indexOf(h) === -1) merged.push(h);
+          });
+          self.hosts = merged.length ? merged : self.FALLBACK_HOSTS.slice();
+          self.host = self.hosts[0];
+          return self.hosts;
+        });
       return this._hostPromise;
+    },
+
+    /** Audius — федерация узлов: часть отдаёт 403/5xx. Пробуем узлы по кругу,
+        пока один не ответит успешно; рабочий узел запоминаем. */
+    call: function (makeUrl) {
+      var self = this;
+      return this.init().then(function (hosts) {
+        var lastErr = null;
+        var attempt = function (i) {
+          if (i >= hosts.length) {
+            throw lastErr || new Error('Audius: ни один узел не ответил');
+          }
+          var idx = (self._cursor + i) % hosts.length;
+          var host = hosts[idx];
+          return getJSON(makeUrl(host), 15000).then(function (j) {
+            self._cursor = idx;
+            self.host = host;
+            return j;
+          }, function (e) { lastErr = e; return attempt(i + 1); });
+        };
+        return attempt(0);
+      });
     },
 
     _q: function (params) {
       var p = new URLSearchParams(params);
-      p.set('app_name', APP);
+      p.set('app_name', 'AuroraWebPlayer');
       return p.toString();
     },
 
     trending: function (genre) {
       var self = this;
-      return this.init().then(function () {
-        var q = { limit: '48' };
-        if (genre) q.genre = genre;
-        return getJSON(self.host + '/v1/tracks/trending?' + self._q(q));
+      var q = { limit: '48' };
+      if (genre) q.genre = genre;
+      return this.call(function (host) {
+        return host + '/v1/tracks/trending?' + self._q(q);
       }).then(function (j) {
         return ((j && j.data) || []).map(Audius.normalize).filter(Boolean);
       });
@@ -83,26 +114,25 @@
 
     search: function (query) {
       var self = this;
-      return this.init().then(function () {
-        return getJSON(self.host + '/v1/tracks/search?' + self._q({ query: query, limit: '60' }));
+      return this.call(function (host) {
+        return host + '/v1/tracks/search?' + self._q({ query: query, limit: '60' });
       }).then(function (j) {
         return ((j && j.data) || []).map(Audius.normalize).filter(Boolean);
       });
     },
 
-    /** Полный объект трека — нужен, чтобы освежить протухшую ссылку на поток */
+    /** Полный объект трека — чтобы освежить протухшую ссылку на поток */
     refresh: function (id) {
       var self = this;
-      return this.init().then(function () {
-        return getJSON(self.host + '/v1/tracks/' + encodeURIComponent(id) + '?' + self._q({}));
+      return this.call(function (host) {
+        return host + '/v1/tracks/' + encodeURIComponent(id) + '?' + self._q({});
       }).then(function (j) {
         var t = Audius.normalize(j && j.data);
         if (!t) throw new Error('Трек недоступен');
-        if (!t.streamUrl) {
-          return getJSON(self.host + '/v1/tracks/' + encodeURIComponent(id) + '/stream?' + self._q({}))
-            .then(function (s) { t.streamUrl = s && s.data && s.data.url; return t; });
-        }
-        return t;
+        if (t.streamUrl) return t;
+        return self.call(function (host) {
+          return host + '/v1/tracks/' + encodeURIComponent(id) + '/stream?' + self._q({});
+        }).then(function (s) { t.streamUrl = s && s.data && s.data.url; return t; });
       });
     },
 
@@ -111,6 +141,10 @@
       var art = t.artwork || null;
       var cover = art ? (art['480x480'] || art['150x150'] || art['1000x1000']) : null;
       var coverBig = art ? (art['1000x1000'] || art['480x480']) : null;
+      // Платные (gated) треки не стримятся бесплатно — берём бесплатный превью-фрагмент
+      var streamUrl = t.stream && t.stream.url ? t.stream.url : null;
+      var isPreview = false;
+      if (!streamUrl && t.preview && t.preview.url) { streamUrl = t.preview.url; isPreview = true; }
       return {
         id: 'audius:' + t.id,
         source: 'audius',
@@ -118,10 +152,11 @@
         title: t.title || 'Без названия',
         artist: (t.user && (t.user.name || t.user.handle)) || 'Неизвестный исполнитель',
         album: t.genre || 'Audius',
-        duration: t.duration || 0,
+        duration: isPreview && t.preview ? (t.duration || 0) : (t.duration || 0),
         cover: cover,
         coverBig: coverBig,
-        streamUrl: t.stream && t.stream.url ? t.stream.url : null,
+        streamUrl: streamUrl,
+        isPreview: isPreview,
         plays: t.play_count || 0,
         likes: t.favorite_count || 0,
         genre: t.genre || '',
@@ -131,7 +166,7 @@
   };
 
   /* ================================================================== *
-   * INTERNET ARCHIVE
+ * INTERNET ARCHIVE
    * ================================================================== */
   var Archive = {
     /** Подборки, в которых действительно лежит музыка (без аудиокниг) */
